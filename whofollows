@@ -16,10 +16,13 @@ verbose=false # Make this true if you want verbose output
 
 if [[ $# != 3 ]]
 then
-  echo Usage: $0 name key secret
-  echo   name    A Twitter account screen name
-  echo   key     A Twitter application consumer API key
-  echo   secret  A Twitter application consumer API secret key
+  echo 
+  echo "  Usage: $0 name key secret"
+  echo
+  echo "    name    A Twitter account screen name"
+  echo "    key     A Twitter application consumer API key"
+  echo "    secret  A Twitter application consumer API secret key"
+  echo 
   exit 1
 fi
 
