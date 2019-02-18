@@ -12,7 +12,7 @@
 
 # https://developer.twitter.com/en/docs/basics/authentication/overview/application-only.html
 
-verbose=true # Make this true if you want verbose output
+verbose=false # Make this true if you want verbose output
 
 if [[ $# != 3 ]]
 then
@@ -87,6 +87,9 @@ $verbose && echo "Token                 ${token}"
 
 # Use the bearer token to authenticate a request to the Twitter API
 
-followers="$( curl --silent --header "Authorization: Bearer ${token}" https://api.twitter.com/1.1/followers/ids.json?screen_name=${screenname}&stringify_ids=true )"
+declare -a response
+declare -a followers 
 
-echo $followers
+response="$( curl --silent --header "Authorization: Bearer ${token}" https://api.twitter.com/1.1/followers/ids.json?screen_name=${screenname}&stringify_ids=true )"
+
+echo $response
