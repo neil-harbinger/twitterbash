@@ -1,0 +1,89 @@
+#!/bin/bash
+
+# Get a list of followers for a Twitter account from the Twitter API
+#
+# Do not add your Twitter API key or secret to the code
+# Define them in your environment and pass them to this script as parameters
+#
+# $ TWITTER_API_KEY="01KyquuXXXXXXXXXWBpfULjppNS"
+# $ TWITTER_API_SECRET="UvcwJS3p6MFJloXXXXXXXXE28vjZd1urLQYe5vgvb77Mcqg"
+# $ bash whofollows neilharbinger ${TWITTER_API_CONSUMER_KEY} ${TWITTER_API_CONSUMER_SECRET}
+# {"ids":[2860987847,849615308860137472,2788801959,844599105515085824,801061650988232704,1084926610241921025,1023926752631054341,2516029806,1054650371824472069,161221654,1002585880052355072,69300858,934542353896845312,977566587388596226,15733,845917179610648576,58265919,18615580,199617042,947801077876961280,1062014961600335873,3081907311,939433726022361088,867518089210081281,3185649925,858714858828812288,989834023664005124,4878616397,809815593654386692,988343142272270336,1027900900399034368,1006156237464129537,842383137690771457,712639407359205376,4877974689,25272586,885493115603349505,932548631198158848,25312227,975498029083000833,968914788893020160,916058857809604608,788678987421720576,2345646295,802195762327277571,4048259482,904645302145208320,555298560,65563900,921442767678656512,947984007995764736,937560903737856000,33923443,7210312,244184257,2717073344],"next_cursor":0,"next_cursor_str":"0","previous_cursor":0,"previous_cursor_str":"0","total_count":null}
+
+# https://developer.twitter.com/en/docs/basics/authentication/overview/application-only.html
+
+verbose=false # Make this true if you want verbose output
+
+if [[ $# != 3 ]]
+then
+  echo Usage: $0 name key secret
+  echo   name    A Twitter account screen name
+  echo   key     A Twitter application consumer API key
+  echo   secret  A Twitter application consumer API secret key
+  exit 1
+fi
+
+screenname=$1
+key=$2
+secret=$3
+
+$verbose && echo "Screen name           ${screenname}"
+$verbose && echo "Key                   ${key}"
+$verbose && echo "Secret                ${secret}"
+
+# Encode consumer key and secret into a specially encoded set of credentials
+# https://stackoverflow.com/a/10797966
+
+#   URL encode the consumer key and consumer secret according to RFC1738
+#   This does not actually change the value but should be done in case the format of the values changes in the future
+
+encodedKey="$( curl -s -o /dev/null -w %{url_effective} --get --data-urlencode "$key" "" )"
+encodedKey=${encodedKey##/?}
+
+encodedSecret="$( curl -s -o /dev/null -w %{url_effective} --get --data-urlencode "$secret" "" )"
+encodedSecret=${encodedSecret##/?}
+
+$verbose && echo "Encoded key           ${encodedKey}"
+$verbose && echo "Encoded secret        ${encodedSecret}"
+
+#    Concatenate the encoded consumer key, a colon character and the encoded consumer secret into a single string
+
+credentials="${encodedKey}:${encodedSecret}"
+
+$verbose && echo "Credentials           ${credentials}"
+
+#    Base64 encode the credentials
+
+encodedCredentials="$( echo -n "${credentials}" | base64 )"
+
+$verbose && echo "Encoded credentials   ${encodedCredentials}"
+
+# Make a request to the POST oauth2/token endpoint to exchange credentials for a bearer token
+
+data="grant_type=client_credentials"
+
+bearerTokenResponse="$( curl --silent --header "Authorization: Basic ${encodedCredentials}" --header "Content-Type: application/x-www-form-urlencoded;charset=UTF-8" --data ${data} https://api.twitter.com/oauth2/token )"
+
+$verbose && echo "Bearer token response ${bearerTokenResponse}"
+
+# Validate that the value associated with the token_type key is 'bearer'
+
+tokenType=$( echo ${bearerTokenResponse} | sed 's/^.*token_type":"//' | sed 's/",".*$//' )
+
+$verbose && echo "Token type            ${tokenType}"
+
+if [ "${tokenType}" != "bearer" ]
+then
+    echo The Twitter API response did not contain a valid token_type value
+    exit 2
+fi
+
+token=$( echo ${bearerTokenResponse} | sed 's/^.*access_token":"//' | sed 's/"}$//' )
+
+$verbose && echo "Token                 ${token}"
+
+# Use the bearer token to authenticate a request to the Twitter API
+
+followers="$( curl --silent --header "Authorization: Bearer ${token}" https://api.twitter.com/1.1/followers/ids.json?screen_name=${screenname}&stringify_ids=true )"
+
+echo $followers
