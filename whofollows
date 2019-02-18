@@ -12,7 +12,7 @@
 
 # https://developer.twitter.com/en/docs/basics/authentication/overview/application-only.html
 
-verbose=false # Make this true if you want verbose output
+verbose=true # Make this true if you want verbose output
 
 if [[ $# != 3 ]]
 then
@@ -57,7 +57,7 @@ $verbose && echo "Credentials           ${credentials}"
 
 #    Base64 encode the credentials
 
-encodedCredentials="$( echo -n "${credentials}" | base64 )"
+encodedCredentials="$( echo -n "${credentials}" | base64 -w 0 )"
 
 $verbose && echo "Encoded credentials   ${encodedCredentials}"
 
